@@ -1,0 +1,107 @@
+# SoK: Security and Privacy in Machine Learning
+## 1. Introduction
+   - First Aspect: in Exploring security and privacy
+     - Confidentiality 保密性: attacks attempt to expose model structure, parameters or data used to train or test;
+     - Integrity 完整性: attacks induce particular outputs or behaviors of the adversary choosing->manipulated through training or predicting data;
+     - Availability 可用性: attacks attempt to prevent legitimate users from accessing meaningful outputs or features.
+   - Second Aspect: in evaluating security and privacy
+     - Attacks
+         - Attacks on training attempt to alter or inject training samples
+         - Attacks on inference attempt to use exploratory attacks to induce targeted outputs, and oracle attacks to extract the model itself
+     - Defenses
+         - Robustness to distribution drift
+         - Guarantees of privacy preservation: bounding info exposed by a learned model
+         - Ensure fairness and accountability 
+## 2. Overview of Machine Learning
+    - Tasks
+      - Supervised Learning
+      - Unsupervised Learning
+      - Reinforcement Learning
+    - ----->>说这个Stages: Training and Inference
+      - Training
+      - Inference
+## 3. 说这个Threat Model
+   - 3.1 The ML Attack Surface 
+     - 定义: where and how an adversary will attempt to subvert the sydstem
+     - 可以攻击的方面: Manipulate the collection of data, corrupt the model, tamper with the outputs
+     - The security of system is measured with respect to the ad goals and capacities that designed to defend against the system’s threat model
+   - 3.2 Trust Model
+     - 定义: the sum of those assumptions forms the trust model
+     - 因素: 
+       - Data owner
+       - System Provider
+       - Consumer
+       - Outsider
+   - 3.3 Adversarial Capabilities
+     - Treat model 定义: actors and info the ad has at their disposal
+     - Security 定义: stronger or weaker ad who have more or less access to the data and system
+     - Adversarial Capability 定义: whats and hows of the available attacks, and defines possible attack vectors on a threat surface
+       - Adversarial Capability 分类:
+       - Inference Phase:
+         - 定义: no temper with target model, but cause it produce adversary outputs or collect model characteristics
+         - 分类:
+           - White Box Attacks: 
+             - 定义: Adversary has info about model or original training data
+             - 分类:
+               - Model Architecture
+               - Model Parameters
+               - Training Data
+               - Combination of aforementioned parts
+           - Black Box Attacks: 
+             - 定义: no knowledge about model, they use info about setting or past inputs to infer model vulnerability
+             - 例子：设计一些输入，看其输出
+       - Training Phrase: 
+         - 定义: attempts to learn, influence, or corrupt model itself
+         - 分类:
+          - 1. Training Data‘s reading: 对手可以仅仅是可读取数据，只是read权限，不能write-> explictly attacks or via untrusted data collection component -> can create substitute model  
+           - 2. Injection: 对手获取不到数据, through inserting adversarial inputs into training data
+           - 3. Modification: 对手可以write数据 alter training data by attacks or untrusted collection component
+           - 4. Logic corruption: tamper with algorithm, like coluding with an untrusted ML component 
+   - 3.4 Adversarial Goals 攻击目标
+     - 1. Confidentiality and Privacy: exposing or preventing model and training data: ad is an untrusted user of the model, it attempt to extract info about the model. 例如， model owner不信model user，那就保护parameter；model user不信model owner，user就想保护自己数据confidentiality 或者 privacy
+     - 2. Integrity and Availability: model outputs: induce model as chosen by the ad
+## 4. Training in Ad Settings (training time attacks)
+   - 定义: parameters of hypothesis are fine-tuned during learning (ad), mainly through poisoning attack
+   - 4.1 Targeting Integrity
+     - 操作Label: 假设只知道training data, 方法是pertube the labels  
+     - 操作input(feature): 假设知道model and training set, 方法是corrupt feature
+       - 1. direct poisonining of the learning imputs: 
+         - When learning performed online: when system evolves, new training points added, like KNN slowly replace its center, so misclassified when inference 
+         - When learning performace offline: 只能通过线下方式来操控训练数据，attcks can identify poisoning points by gradient ascent on the test error of the model, then add them to training 
+       - 2. indirect poisonining of the learning imputs: 对手不能接触到pre-processed data: poison training data before its pre-process
+   - 4.2 Targeting Privacy and Confidentiality 没展开讨论
+## 5. Inferring in Ad Settings (inference-time attacks): 最终的目的都是希望能对模型的最终结果产生破坏，与预期脱离, 模型已经训练好并且固定了
+   - 5.1 White-box ad
+     - 前提：know its model and parameter, 不知数据training data等 
+     - 1. Integrity: pertube the inputs of model = modify distribution that generate data
+       - Direct manipulation of model inputs: alter feature, ad want a classifier assign wrong class to inputs -> ad examples
+       - Indirect manipulation of model inputs: ad can not directly modify feature, they want to find pertubations preserved by data pipeline. ad construct ad examples in the physical domain stqqge
+     - 2. Privacy and Confidentiality: Ad attack Confidentiality is diverse since they have access to parameters, ad privacy interested to recover info about training data.
+       - membership test: whether a particular input is used in training dataset
+   - 5.2 black-box ad: 不知道model internal
+     - 1. Integrity
+       - Direct manipulation of model inputs: 
+         - Ad has access to class probability-> recover many details of the model
+         - Ad cannot access probability, only see the first and last stage of the pipeline, like input and classification label. 
+           - 出来一个名字Ad example tranferability: ad ex misclassified by a model tend to be misclassified by a different model
+       - Data pipeline manipulation
+     - 2.Privacy and Confidentiality
+       - Membership attacks 成员推断
+         - 定义: ad is looking to test whether or not a specific point is part of the training dataset
+         - 方法: train shadow model: each shadow model is trained to solve the membership inference test with synthetic samples of the corresponding class 解释：这些模型的行为类似于目标模型，与目标模型相比每个影子模型的真实情况是已知的，即给定的记录是否在其训练数据集中。因此，可以对影子模型的输入和相应的输出(每个标记为“in”或“out”)进行监督训练，教攻击模型如何区分影子模型对其训练数据集成员的输出和对非成员的输出，
+       - Training data extraction
+         - 定义: like model inversion attack: 例如医疗数据，病人的一些auxiliary info can recover genomic info. from prediction to extract training data
+       - model Extraction
+         - 定义: extract parameters from observation of input-output pairs 是一种攻击者通过循环发送数据，查看模型响应结果，来推测该模型的参数或功能，从而复制出一个功能相似、甚至完全相同的机器学习模型
+## 6. Towards robust, private, and accountable ml models (defending)
+   - 6.1 Robustness of models to distuibution drifts
+     - defending against training-time attacks: relying on the fact that poisoning samples are out of the expected input distribution
+     - defending against inference-time attacks: 
+       - defending by gradient masking(little disturb): 因为之前会用小的扰动来改变model输出，此时defend方法就是 reduce semsitivity of model to small change made to their inputs
+       - defending against larger perturbations: defind a differentiable and efficient computed adversarial objective during training. defender minimize rhe error between model's prediction on ad ex and the original labels       
+   - 6.2 Learning and inferring with privacy: they donot reveal info about subjects involved in their training data
+     - training: random noise injected to the data
+     - inference: introduce noise to prediction
+   - 6.3 fairness and accountability in ML
+     - fairness: related to action taken in physical domain
+     - accountability: explain model predictions
